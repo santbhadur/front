@@ -9,7 +9,8 @@ export default function ProductItems({
   selectedInvoice,
   selectedOption1,
   selectedOption2,
-  inputText
+  inputText,
+   invoiceNumber
 }) {
   const navigate = useNavigate();
 
@@ -22,7 +23,7 @@ export default function ProductItems({
     
 
     useEffect(() => {
-        fetch('http://localhost:5000/items')
+        fetch('https://backend-kappa-rouge-15.vercel.app/items')
             .then(res => res.json())
             .then(data => setItems(data))
             .catch(err => console.error('Error fetching items:', err));
@@ -61,7 +62,7 @@ export default function ProductItems({
         const total = quantity * priceWithTax;
 
         const newItem = {
-            id: selectedItem.id,
+            id: selectedItem._id,
             productName: selectedItem.productName,
             quantity,
             unitPrice: unitPrice.toFixed(2),
@@ -110,7 +111,7 @@ export default function ProductItems({
                 <ul >
                     {filteredItems.map(item => (
                         <li
-                            key={item.id}
+                            key={item._id}
                             onClick={() => handleSelectItem(item)}
                             style={{ padding: '8px', cursor: 'pointer', backgroundColor: '#f9f9f9' }}
                         >
@@ -121,6 +122,10 @@ export default function ProductItems({
             )}
 
             </div>
+            <div style={{ marginBottom: '20px', fontWeight: 'bold' }}>
+  Invoice Number: {invoiceNumber || 'Loading...'}
+</div>
+
             <div className='productionitem'>
 
             <input
@@ -231,31 +236,8 @@ export default function ProductItems({
  
                 </>
             )}
-            {selectedInvoice && cartItems.length > 0 && (
-  <button
-    onClick={() => {
-      navigate('/preview', {
-        state: {
-          customer: selectedInvoice,
-          products: cartItems,
-          invoiceDate: selectedOption1,
-          dueDate: selectedOption2,
-          notes: inputText
-        }
-      });
-    }}
-    style={{
-      marginTop: '30px',
-      padding: '10px 20px',
-      backgroundColor: '#28a745',
-      color: 'white',
-      border: 'none',
-      cursor: 'pointer'
-    }}
-  >
-    Generate Bill Preview
-  </button>
-)}
+           
+
 
             
         </div>

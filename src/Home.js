@@ -4,6 +4,8 @@ import ProductItems from './ProductItems';
 import SearchInvoice from './SearchInvoice';
 import CreateInvoice from './CreateInvoice';
 import Layout from './Layout';
+import { useNavigate } from 'react-router-dom';
+
 
 
 const Home = () => {
@@ -11,12 +13,16 @@ const Home = () => {
   const [invoiceData, setInvoiceData] = useState([]);
   const [notFound, setNotFound] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [sales, setSales] = useState([]);
 
 
   // Form data
   const [selectedOption1, setSelectedOption1] = useState('');
   const [selectedOption2, setSelectedOption2] = useState('');
   const [inputText, setInputText] = useState('');
+
+  const navigate = useNavigate();
+
 
   useEffect(() => {
     const delaySearch = setTimeout(() => {
@@ -31,10 +37,24 @@ const Home = () => {
 
     return () => clearTimeout(delaySearch);
   }, [query]);
+  useEffect(() => {
+  fetchSales();
+}, []);
+
+const fetchSales = async () => {
+  try {
+    const response = await fetch('https://backend-kappa-rouge-15.vercel.app/sales');
+    const data = await response.json();
+    setSales(data);
+  } catch (error) {
+    console.error('Failed to fetch sales data:', error);
+  }
+};
+
 
   const searchInvoices = async (searchTerm) => {
     try {
-      const response = await fetch(`http://localhost:5000/invoices/search?customerName=${searchTerm}`);
+      const response = await fetch(`https://backend-kappa-rouge-15.vercel.app/invoices/search?customerName=${searchTerm}`);
       const data = await response.json();
 
       if (response.ok && data.length > 0) {
@@ -50,45 +70,35 @@ const Home = () => {
     }
   };
 
+  const handleDeleteSale = async (saleId) => {
+  const confirmDelete = window.confirm('Are you sure you want to delete this sale?');
+  if (!confirmDelete) return;
+
+  try {
+    const response = await fetch(`https://backend-kappa-rouge-15.vercel.app/sales/${saleId}`, {
+      method: 'DELETE',
+    });
+
+    if (response.ok) {
+      // Remove from UI
+      setSales(sales.filter((sale) => sale._id !== saleId));
+      alert('Sale deleted successfully');
+    } else {
+      alert('Failed to delete sale');
+    }
+  } catch (error) {
+    console.error('Error deleting sale:', error);
+    alert('Something went wrong while deleting');
+  }
+};
+
+
   const handleSelectInvoice = (invoice) => {
     setSelectedInvoice(invoice);
     setInvoiceData([]); // Remove all results
   };
 
-  const handleSubmit = async () => {
-    if (!selectedOption1 || !selectedOption2 || !inputText) {
-      alert("Please fill all the fields before submitting!");
-      return;
-    }
-
-    try {
-      const response = await fetch('http://localhost:5000/invoices/submit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          invoiceId: selectedInvoice.id,
-          selectedOption1,
-          selectedOption2,
-          inputText,
-        }),
-      });
-
-      if (response.ok) {
-        alert('Data submitted successfully');
-        // Optionally, reset the form or handle other UI updates
-        setSelectedOption1('');
-        setSelectedOption2('');
-        setInputText('');
-      } else {
-        alert('Failed to submit data');
-      }
-    } catch (error) {
-      console.error('Submit error:', error);
-      alert('Error occurred while submitting data');
-    }
-  };
+  
 
   return (
 
@@ -146,19 +156,43 @@ const Home = () => {
             <div className='Amountline'>
           <p className='Amountlin1'>Amount</p>
           <p className='Amountlin1'>Status</p>
-          <p className='Amountlin1'>Mode</p>
           <p className='Amountlin1'>Bill</p>
           <p className='Amountlin1'>Customer</p>
           <p className='Amountlin1'>Date</p>
+          <p className='Amountlin1'>Delete</p>
         </div>
-            {selectedInvoice && (
-              <div className='selectIn'>
-                <p className='Amountline1'> {selectedInvoice.customerName}</p><br></br>
-                <p className='Amountline1'> shipping billing {selectedInvoice.address}</p>
-                
+        <div className="sales-list-scrollable">
 
-              </div>
-            )}
+            {[...sales].reverse().map((sale) => (
+  <div className="Amountline1" key={sale._id}
+   style={{ display: 'flex', gap: '1px', padding: '10px 0', borderBottom: '1px solid #ddd' }}  >
+    <div className="Amountline1" key={sale._id} onClick={() => navigate(`/sale/${sale._id}`)}
+   style={{ display: 'flex', gap: '1px', padding: '10px 0', borderBottom: '1px solid #ddd' }}>
+    <p className="Amountlin1">₹{sale.grandTotal}</p>
+    <p className="Amountlin1">Paid</p>
+    <p className="Amountlin1">{sale.invoiceNumber}</p>
+    <p className="Amountlin1">{sale.customerName}</p>
+    <p className="Amountlin1">{new Date(sale.invoiceDate).toLocaleDateString()}</p>
+    </div>
+     <p className="Amountlin1">
+      
+        <button
+          onClick={() => handleDeleteSale(sale._id)}
+          style={{
+            backgroundColor: 'red',
+            color: 'white',
+            border: 'none',
+            padding: '5px 10px',
+            cursor: 'pointer',
+            borderRadius: '4px',
+          }}
+        >
+          Delete
+        </button>
+      </p>
+  </div>
+))}
+</div>
           </div>
         </div>
         

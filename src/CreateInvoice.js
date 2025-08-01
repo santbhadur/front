@@ -16,7 +16,7 @@ const CreateInvoice = () => {
 
   const handleSubmit = async () => {
     try {
-      const response = await fetch('http://localhost:5000/invoices', {
+      const response = await fetch('https://backend-kappa-rouge-15.vercel.app/invoices', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

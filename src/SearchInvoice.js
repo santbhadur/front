@@ -2,11 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProductItems from './ProductItems';
 
+
+
+const todayDate = new Date().toISOString().split('T')[0];
+
 const SearchInvoice = () => {
   const [query, setQuery] = useState('');
   const [invoiceData, setInvoiceData] = useState([]);
   const [notFound, setNotFound] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [selectedOption3, setSelectedOption3] = useState(todayDate); // Invoice Date
+const [selectedOption4, setSelectedOption4] = useState(todayDate); // Due Date
+const [invoiceNumber, setInvoiceNumber] = useState('');
+
+
+  
 
   // Form data
   const [selectedOption1, setSelectedOption1] = useState('');
@@ -29,10 +39,84 @@ const SearchInvoice = () => {
 
     return () => clearTimeout(delaySearch);
   }, [query]);
+  useEffect(() => {
+  fetch('https://backend-rmq05py7g-santbhadurs-projects.vercel.app/api/next-invoice-number')
+    .then(res => res.json())
+    .then(data => {
+      if (data.invoiceNumber) {
+        setInvoiceNumber(data.invoiceNumber);
+      }
+    })
+    .catch(err => console.error('Failed to fetch invoice number', err));
+}, []);
+
+const handleSubmit = async () => {
+  if (!selectedInvoice || cartItems.length === 0) {
+    alert("Please select a customer and add at least one product.");
+    return;
+  }
+
+  const invoicePayload = {
+    invoiceNumber,
+    customerId: selectedInvoice.id,
+    customerName: selectedInvoice.customerName,
+    customerAddress: selectedInvoice.address,
+    invoiceDate: selectedOption3,
+    dueDate: selectedOption4,
+    notes: inputText,
+    items: cartItems,
+    totalProducts: cartItems.length,
+    totalQuantity: cartItems.reduce((sum, item) => sum + item.quantity, 0),
+    grandTotal: cartItems.reduce((sum, item) => sum + parseFloat(item.total), 0).toFixed(2),
+    someField: 'ABC-123',
+  };
+
+  try {
+    const response = await fetch('https://backend-rmq05py7g-santbhadurs-projects.vercel.app/invoices/submit', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(invoicePayload),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+
+      // Navigate to preview page with the invoice data
+      navigate('/preview', {
+        state: {
+          invoiceNumber,
+          ...invoicePayload
+        }
+      });
+
+      // Optionally: reset UI if needed
+      setCartItems([]);
+      setInputText('');
+      setSelectedInvoice(null);
+      setSelectedOption3(todayDate);
+      setSelectedOption4(todayDate);
+
+      // Fetch new invoice number
+      const next = await fetch('https://backend-rmq05py7g-santbhadurs-projects.vercel.app/api/next-invoice-number');
+      const nextData = await next.json();
+      setInvoiceNumber(nextData.invoiceNumber);
+
+    } else {
+      alert('Failed to save invoice');
+    }
+  } catch (error) {
+    console.error('Error saving invoice:', error);
+    alert('Error occurred while saving the invoice');
+  }
+};
+
+
 
   const searchInvoices = async (searchTerm) => {
     try {
-      const response = await fetch(`http://localhost:5000/invoices/search?customerName=${searchTerm}`);
+      const response = await fetch(`https://backend-kappa-rouge-15.vercel.app/invoices/search?customerName=${searchTerm}`);
       const data = await response.json();
 
       if (response.ok && data.length > 0) {
@@ -53,41 +137,7 @@ const SearchInvoice = () => {
     setInvoiceData([]); // Remove all results
   };
 
-  const handleSubmit = async () => {
-    if (!selectedOption1 || !selectedOption2 || !inputText) {
-      alert("Please fill all the fields before submitting!");
-      return;
-    }
-
-    try {
-      const response = await fetch('http://localhost:5000/invoices/submit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          invoiceId: selectedInvoice.id,
-          selectedOption1,
-          selectedOption2,
-          inputText,
-        }),
-      });
-
-      if (response.ok) {
-        alert('Data submitted successfully');
-        // Optionally, reset the form or handle other UI updates
-        setSelectedOption1('');
-        setSelectedOption2('');
-        setInputText('');
-      } else {
-        alert('Failed to submit data');
-      }
-    } catch (error) {
-      console.error('Submit error:', error);
-      alert('Error occurred while submitting data');
-    }
-  };
-
+  
   // Prevent multiple button rendering:
   const shouldShowGenerateButton = selectedInvoice && cartItems.length > 0;
 
@@ -110,23 +160,23 @@ const SearchInvoice = () => {
         <label className='Invoicedate'>Invoice Date</label><br />
         <input
           type='date'
-          className='otherdetail1'
-          value={selectedOption1}
-          onChange={(e) => setSelectedOption1(e.target.value)}
+          className='otherdetail3'
+          value={selectedOption3}
+          onChange={(e) => setSelectedOption3(e.target.value)}
         />
         <label>Due Date</label><br />
         <input
           type='date'
-          className='otherdetail2'
-          value={selectedOption2}
-          onChange={(e) => setSelectedOption2(e.target.value)}
+          className='otherdetail4'
+          value={selectedOption4}
+          onChange={(e) => setSelectedOption4(e.target.value)}
         />
       </div>
 
       <div style={{ position: 'absolute', top: '15%', width: '300px', marginTop: '2px' }}>
         {invoiceData.map((invoice) => (
           <div
-            key={invoice.id}
+            key={invoice._id}
             onClick={() => handleSelectInvoice(invoice)}
             style={{
               border: '1px solid #ccc',
@@ -179,21 +229,12 @@ const SearchInvoice = () => {
         selectedOption1={selectedOption1}
         selectedOption2={selectedOption2}
         inputText={inputText}
+         invoiceNumber={invoiceNumber}
       />
 
       {shouldShowGenerateButton && (
         <button
-          onClick={() => {
-            navigate('/preview', {
-              state: {
-                customer: selectedInvoice,
-                products: cartItems,
-                invoiceDate: selectedOption1,
-                dueDate: selectedOption2,
-                notes: inputText,
-              },
-            });
-          }}
+          onClick={handleSubmit}
           style={{
             marginTop: '30px',
             padding: '10px 20px',

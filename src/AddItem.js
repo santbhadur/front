@@ -14,7 +14,7 @@ const AddItem = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:5000/items', {
+      const response = await fetch('https://backend-kappa-rouge-15.vercel.app/items', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

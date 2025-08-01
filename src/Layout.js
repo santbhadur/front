@@ -1,17 +1,32 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './App.css';
-import { Link } from 'react-router-dom';
-import Home from './Home';
+import Register from './Register';
 
 export default function Layout() {
+  const [showRegister, setShowRegister] = useState(false);
+
+  const openPanel = () => setShowRegister(true);
+  const closePanel = () => setShowRegister(false);
+
   return (
-    <div class="layout">
-      <p className='sale'>Sale</p>
-      <p className='In'>Invoice</p>
-      <p className='In'>Create Notes</p>
-      <p className='In'>E-Invoice</p>
-      <p className='In'>Subscriptions</p>
-      <Link to='/Home'>Home</Link>
+    <div>
+      <div className="layout">
+        <p className="sale">Sale</p>
+        <p><button onClick={openPanel}>Add Customer</button></p>
+        <p><a href="/create-invoice">Customer Details</a></p>
+        <p><a href="/add-item">Add Item</a></p>
+        <a href="/home">Home</a>
+      </div>
+
+      {showRegister && (
+        <>
+          <div className="overlay" onClick={closePanel}></div>
+          <div className={`slide-panel open`}>
+            <button onClick={closePanel} style={{ float: 'right' }}>X</button>  
+            <Register />
+          </div>
+        </>
+      )}
     </div>
   );
 }
