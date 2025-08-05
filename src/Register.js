@@ -14,8 +14,8 @@ const Register = () => {
     phone: '',
     gstNumber: '',
     companyName: '',
-    billingAddress: '',
-    shippingAddress: '',
+    billingAddress: {},
+    shippingAddress: {},
   });
 
   const [showAddressForm, setShowAddressForm] = useState(false);
@@ -29,10 +29,50 @@ const Register = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log('Form Data:', formData);
-  };
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  // ✅ VALIDATE BEFORE SENDING
+  if (
+    !formData.name ||
+    !formData.phone ||
+    !formData.billingAddress.address1 ||
+    !formData.shippingAddress.address1
+  ) {
+    alert('Please fill all required fields including addresses');
+    return;
+  }
+
+  try {
+    const response = await fetch('https://backend-git-main-santbhadurs-projects.vercel.app/api/customers', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(formData),
+    });
+      console.log(response.data)
+    if (response.ok) {
+      alert('Customer saved successfully');
+      // Optional: reset form after success
+      setFormData({
+        name: '',
+        phone: '',
+        gstNumber: '',
+        companyName: '',
+        billingAddress: {},
+        shippingAddress: {},
+      });
+      
+    } else {
+      alert('Error saving customer');
+    }
+  } catch (err) {
+    console.error(err);
+    alert('Network error');
+  }
+};
+
 
   const handleAddressSubmit = (address) => {
     setFormData((prevData) => ({
@@ -42,10 +82,10 @@ const Register = () => {
     setShowAddressForm(false);
   };
 
-   const handleAddress2Submit = (address) => {
+  const handleAddress2Submit = (address) => {
     setFormData((prevData) => ({
       ...prevData,
-      billingAddress: address,
+      shippingAddress: address,
     }));
     setShowAddress2Form(false);
   };
@@ -54,33 +94,53 @@ const Register = () => {
     <div style={{ maxWidth: '500px', margin: 'auto' }}>
       <h6>Customer Form</h6>
       <form onSubmit={handleSubmit}>
-        <Form.Group className="mb-3" controlId="formBasicEmail">
+        <Form.Group className="mb-3" controlId="formName">
           <Form.Label>Name</Form.Label>
-          <Form.Control type="text" placeholder="Enter Name" />
-
+          <Form.Control
+            type="text"
+            name="name"
+            placeholder="Enter Name"
+            value={formData.name}
+            onChange={handleChange}
+          />
         </Form.Group>
 
         <div>
-          <Form.Group className="mb-3" controlId="formBasicEmail">
+          <Form.Group className="mb-3" controlId="formPhone">
             <Form.Label>Phone</Form.Label>
-            <Form.Control type="number" placeholder="Enter Phone" />
-
+            <Form.Control
+              type="number"
+              name="phone"
+              placeholder="Enter Phone"
+              value={formData.phone}
+              onChange={handleChange}
+            />
           </Form.Group>
         </div><br></br>
 
         <div>
           <h6>Company Details(optional)</h6>
-          <Form.Group className="mb-3" controlId="formBasicEmail">
+          <Form.Group className="mb-3" controlId="formGstNumber">
             <Form.Label>GST Number</Form.Label>
-            <Form.Control type="number" placeholder="Enter GST Number" />
-
+            <Form.Control
+              type="text"
+              name="gstNumber"
+              placeholder="Enter GST Number"
+              value={formData.gstNumber}
+              onChange={handleChange}
+            />
           </Form.Group>
         </div>
 
-        <Form.Group className="mb-3" controlId="formBasicEmail">
+        <Form.Group className="mb-3" controlId="formCompanyName">
           <Form.Label>Company Name</Form.Label>
-          <Form.Control type="text" placeholder="Enter Company Name" />
-
+          <Form.Control
+            type="text"
+            name="companyName"
+            placeholder="Enter Company Name"
+            value={formData.companyName}
+            onChange={handleChange}
+          />
         </Form.Group>
 
         <div>
@@ -89,21 +149,33 @@ const Register = () => {
             <Fab size="small" color="secondary" aria-label="add" onClick={() => setShowAddressForm(true)}>
               <AddIcon />
             </Fab>
-            <span>{formData.billingAddress ? formData.billingAddress : 'Billing Address'}</span>
+            <span>
+              {formData.billingAddress?.address1
+                ? `${formData.billingAddress.address1}, ${formData.billingAddress.city}, ${formData.billingAddress.state}`
+                : 'Billing Address'}
+            </span>
+
+
           </Box>
         </div>
 
         <div>
 
-          <Box sx={{ '& > :not(style)': { m: 1 } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', '& > :not(style)': { m: 1 } }}>
             <Fab size="small" color="secondary" aria-label="add" onClick={() => setShowAddress2Form(true)}>
               <AddIcon />
             </Fab>
-            <span>Shipping Address</span>
+            <span>
+              {formData.shippingAddress?.address1
+                ? `${formData.shippingAddress.address1}, ${formData.shippingAddress.city}, ${formData.shippingAddress.state}`
+                : 'Shipping Address'}
+            </span>
           </Box>
+
         </div><br></br>
 
-        <Button variant="primary">Save</Button>
+        <Button variant="primary" type="submit">Save</Button>
+
       </form>
 
       {/* Slide Panel for Billing Address */}

@@ -8,8 +8,9 @@ const SaleDetails = () => {
   useEffect(() => {
     const fetchSaleDetails = async () => {
       try {
-        const response = await fetch(`https://backend-kappa-rouge-15.vercel.app/sales/${saleId}`);
+        const response = await fetch(`https://backend-git-main-santbhadurs-projects.vercel.app/api/invoices/submit/${saleId}`);
         const data = await response.json();
+        console.log(data)
         setSale(data);
       } catch (error) {
         console.error('Error fetching sale details:', error);
@@ -53,7 +54,7 @@ const SaleDetails = () => {
                   <td style={styles.td}>{item.productName}</td>
                   <td style={styles.td}>{item.quantity}</td>
                   <td style={styles.td}>₹{item.unitPrice}</td>
-                  <td style={styles.td}>{item.gst}%</td>
+                  <td style={styles.td}>{item.totalGstValue}%</td>
                   <td style={styles.td}>₹{item.total}</td>
                 </tr>
               ))}

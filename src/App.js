@@ -22,8 +22,8 @@ function App() {
     
     <Routes>
 
-      <Route path="/" element={<Layout />} />
-      <Route path="/Home" element={<Home />} />
+      
+      <Route path="/" element={<Home />} />
       <Route path='/add-constomer' element={<AddConstomer />} />
       <Route path="/SearchInvoice" element={<SearchInvoice />} />
       <Route path="/create-invoice" element={<CreateInvoice />} />

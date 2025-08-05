@@ -4,75 +4,117 @@ import ProductItems from './ProductItems';
 
 
 
+
+
+
 const todayDate = new Date().toISOString().split('T')[0];
 
 const SearchInvoice = () => {
   const [query, setQuery] = useState('');
-  const [invoiceData, setInvoiceData] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [filteredCustomers, setFilteredCustomers] = useState([]);
   const [notFound, setNotFound] = useState(false);
-  const [selectedInvoice, setSelectedInvoice] = useState(null);
-  const [selectedOption3, setSelectedOption3] = useState(todayDate); // Invoice Date
-const [selectedOption4, setSelectedOption4] = useState(todayDate); // Due Date
-const [invoiceNumber, setInvoiceNumber] = useState('');
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
 
+  const [invoiceDate, setInvoiceDate] = useState(todayDate);
+  const [dueDate, setDueDate] = useState(todayDate);
+  const [invoiceNumber, setInvoiceNumber] = useState('');
 
-  
-
-  // Form data
-  const [selectedOption1, setSelectedOption1] = useState('');
-  const [selectedOption2, setSelectedOption2] = useState('');
   const [inputText, setInputText] = useState('');
   const [cartItems, setCartItems] = useState([]);
+  // Add these at the top in useState declarations
+const [isIntraState, setIsIntraState] = useState(false);
+const [cgst, setCgst] = useState('');
+const [sgst, setSgst] = useState('');
+const [igst, setIgst] = useState('');
+const [totalGstValue, setTotalGstValue] = useState('');
+const [avgGstPercent, setAvgGstPercent] = useState('');
+const [avgDiscountPercent, setAvgDiscountPercent] = useState('');
+const [totalDiscountValue, setTotalDiscountValue] = useState('');
+
 
   const navigate = useNavigate();
 
+  // Fetch invoice number once
   useEffect(() => {
-    const delaySearch = setTimeout(() => {
-      if (query.trim() !== '') {
-        searchInvoices(query);
-      } else {
-        setInvoiceData([]);
-        setNotFound(false);
-        setSelectedInvoice(null);
-      }
-    }, 500);
+    fetch('https://backend-git-main-santbhadurs-projects.vercel.app/api/next-invoice-number')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.invoiceNumber) {
+          setInvoiceNumber(data.invoiceNumber);
+        }
+      })
+      .catch((err) => console.error('Failed to fetch invoice number', err));
+  }, []);
 
-    return () => clearTimeout(delaySearch);
-  }, [query]);
+  // Fetch all customers
   useEffect(() => {
-  fetch('https://backend-rmq05py7g-santbhadurs-projects.vercel.app/api/next-invoice-number')
-    .then(res => res.json())
-    .then(data => {
-      if (data.invoiceNumber) {
-        setInvoiceNumber(data.invoiceNumber);
-      }
-    })
-    .catch(err => console.error('Failed to fetch invoice number', err));
-}, []);
+    fetch('https://backend-git-main-santbhadurs-projects.vercel.app/api/customers')
+      .then((res) => res.json())
+      .then((data) => setCustomers(data))
+      .catch((err) => console.error('Failed to fetch customers', err));
+  }, []);
 
-const handleSubmit = async () => {
-  if (!selectedInvoice || cartItems.length === 0) {
-    alert("Please select a customer and add at least one product.");
+  // Filter customers by query
+  useEffect(() => {
+    if (query.trim() === '') {
+      setFilteredCustomers([]);
+      setNotFound(false);
+      return;
+    }
+
+    const filtered = customers.filter((cust) =>
+      cust.name.toLowerCase().includes(query.toLowerCase())
+    );
+
+    setFilteredCustomers(filtered);
+    setNotFound(filtered.length === 0);
+  }, [query, customers]);
+
+  const handleSelectCustomer = (customer) => {
+    setSelectedCustomer(customer);
+    setFilteredCustomers([]);
+    setQuery(customer.name);
+  };
+
+  const handleSubmit = async () => {
+  if (!selectedCustomer || cartItems.length === 0) {
+    alert('Please select a customer and add at least one product.');
     return;
   }
 
+  const shipping = selectedCustomer.shippingAddress || {};
+  const fullAddress = `${shipping.address1 || ''}, ${shipping.city || ''}, ${shipping.state || ''}`;
+
   const invoicePayload = {
     invoiceNumber,
-    customerId: selectedInvoice.id,
-    customerName: selectedInvoice.customerName,
-    customerAddress: selectedInvoice.address,
-    invoiceDate: selectedOption3,
-    dueDate: selectedOption4,
+    customerId: selectedCustomer._id,
+    customerName: selectedCustomer.name,
+    customerAddress: fullAddress,
+    invoiceDate,
+    dueDate,
     notes: inputText,
     items: cartItems,
     totalProducts: cartItems.length,
     totalQuantity: cartItems.reduce((sum, item) => sum + item.quantity, 0),
     grandTotal: cartItems.reduce((sum, item) => sum + parseFloat(item.total), 0).toFixed(2),
-    someField: 'ABC-123',
+
+    // GST / Discount data
+    isIntraState,
+    cgst,
+    sgst,
+    igst,
+    totalGstValue,
+    avgGstPercent,
+    avgDiscountPercent,
+    totalDiscountValue
   };
 
+  // ✅ Console full invoice payload for debug
+  console.log("Invoice Payload to Save:", invoicePayload);
+
   try {
-    const response = await fetch('https://backend-rmq05py7g-santbhadurs-projects.vercel.app/invoices/submit', {
+    const response = await fetch('https://backend-git-main-santbhadurs-projects.vercel.app/api/invoices/submit', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -81,65 +123,41 @@ const handleSubmit = async () => {
     });
 
     if (response.ok) {
-      const data = await response.json();
+      alert('Data saved successfully!');
+      const savedInvoice = await response.json();
+      console.log('Saved invoice (from backend):', savedInvoice);
 
-      // Navigate to preview page with the invoice data
+      // Reset
+      setCartItems([]);
+      setInputText('');
+      setSelectedCustomer(null);
+      setQuery('');
+      setInvoiceDate(todayDate);
+      setDueDate(todayDate);
+
+      // Navigate to preview
       navigate('/preview', {
         state: {
           invoiceNumber,
-          ...invoicePayload
-        }
+          ...invoicePayload,
+        },
       });
 
-      // Optionally: reset UI if needed
-      setCartItems([]);
-      setInputText('');
-      setSelectedInvoice(null);
-      setSelectedOption3(todayDate);
-      setSelectedOption4(todayDate);
-
-      // Fetch new invoice number
-      const next = await fetch('https://backend-rmq05py7g-santbhadurs-projects.vercel.app/api/next-invoice-number');
+      // Get new invoice number
+      const next = await fetch('http://localhost:5000/api/next-invoice-number');
       const nextData = await next.json();
       setInvoiceNumber(nextData.invoiceNumber);
-
     } else {
-      alert('Failed to save invoice');
+      console.error('Save failed. Response:', response);
+      alert('Failed to save invoice.');
     }
   } catch (error) {
     console.error('Error saving invoice:', error);
-    alert('Error occurred while saving the invoice');
+    alert('An error occurred while saving the invoice.');
   }
 };
 
-
-
-  const searchInvoices = async (searchTerm) => {
-    try {
-      const response = await fetch(`https://backend-kappa-rouge-15.vercel.app/invoices/search?customerName=${searchTerm}`);
-      const data = await response.json();
-
-      if (response.ok && data.length > 0) {
-        setInvoiceData(data);
-        setNotFound(false);
-      } else {
-        setInvoiceData([]);
-        setNotFound(true);
-      }
-    } catch (error) {
-      console.error('Search error:', error);
-      setNotFound(true);
-    }
-  };
-
-  const handleSelectInvoice = (invoice) => {
-    setSelectedInvoice(invoice);
-    setInvoiceData([]); // Remove all results
-  };
-
-  
-  // Prevent multiple button rendering:
-  const shouldShowGenerateButton = selectedInvoice && cartItems.length > 0;
+  const shouldShowGenerateButton = selectedCustomer && cartItems.length > 0;
 
   return (
     <div style={{ margin: '20px' }}>
@@ -156,53 +174,57 @@ const handleSubmit = async () => {
           width: '300px',
         }}
       />
-      <div className='otherdetail'>
-        <label className='Invoicedate'>Invoice Date</label><br />
-        <input
-          type='date'
-          className='otherdetail3'
-          value={selectedOption3}
-          onChange={(e) => setSelectedOption3(e.target.value)}
-        />
-        <label>Due Date</label><br />
-        <input
-          type='date'
-          className='otherdetail4'
-          value={selectedOption4}
-          onChange={(e) => setSelectedOption4(e.target.value)}
-        />
-      </div>
 
       <div style={{ position: 'absolute', top: '15%', width: '300px', marginTop: '2px' }}>
-        {invoiceData.map((invoice) => (
+        {filteredCustomers.map((customer) => (
           <div
-            key={invoice._id}
-            onClick={() => handleSelectInvoice(invoice)}
+            key={customer._id}
+            onClick={() => handleSelectCustomer(customer)}
             style={{
               border: '1px solid #ccc',
-              padding: '15px',
-              marginBottom: '1px',
+              padding: '10px',
+              marginBottom: '2px',
               cursor: 'pointer',
               backgroundColor: '#f9f9f9',
             }}
           >
-            <p>{invoice.customerName}</p>
+            <p>{customer.name}</p>
           </div>
         ))}
-        {notFound && <p style={{ color: 'red' }}>No invoice found for "{query}"</p>}
+        {notFound && <p style={{ color: 'red' }}>No customer found for "{query}"</p>}
       </div>
 
-      {selectedInvoice && (
-        <div style={{
-          marginTop: '30px',
-          width: '300px',
-          padding: '20px',
-          border: '2px solid #007bff',
-          borderRadius: '5px',
-          position: 'relative',
-        }}>
+
+      <div className="otherdetail">
+        <label>Invoice Date</label><br />
+        <input
+          type="date"
+          className="otherdetail3"
+          value={invoiceDate}
+          onChange={(e) => setInvoiceDate(e.target.value)}
+        />
+        <label>Due Date</label><br />
+        <input
+          type="date"
+          className="otherdetail4"
+          value={dueDate}
+          onChange={(e) => setDueDate(e.target.value)}
+        />
+      </div>
+
+      {selectedCustomer && (
+        <div
+          style={{
+            marginTop: '30px',
+            width: '300px',
+            padding: '20px',
+            border: '2px solid #007bff',
+            borderRadius: '5px',
+            position: 'relative',
+          }}
+        >
           <button
-            onClick={() => setSelectedInvoice(null)}
+            onClick={() => setSelectedCustomer(null)}
             style={{
               position: 'absolute',
               top: '5px',
@@ -213,23 +235,35 @@ const handleSubmit = async () => {
               cursor: 'pointer',
               color: '#dc3545',
             }}
-            title="Clear selected invoice"
+            title="Clear selected customer"
           >
             ❌
           </button>
-          <p><strong>{selectedInvoice.customerName}</strong></p><br />
-          <p>Shipping/Billing: {selectedInvoice.address}</p>
+          <p><strong>{selectedCustomer.name}</strong></p><br />
+          <p>
+            Address:{' '}
+            {`${selectedCustomer.shippingAddress?.address1 || ''},${selectedCustomer.shippingAddress?.address2 || ''}, ${selectedCustomer.shippingAddress?.city || ''}, ${selectedCustomer.shippingAddress?.state || ''}`},
+          </p>
         </div>
       )}
 
       <ProductItems
         cartItems={cartItems}
         setCartItems={setCartItems}
-        selectedInvoice={selectedInvoice}
-        selectedOption1={selectedOption1}
-        selectedOption2={selectedOption2}
+        selectedInvoice={selectedCustomer}
+        selectedOption1={''}
+        selectedOption2={''}
         inputText={inputText}
-         invoiceNumber={invoiceNumber}
+        invoiceNumber={invoiceNumber}
+          // New props
+  setIsIntraState={setIsIntraState}
+  setCgst={setCgst}
+  setSgst={setSgst}
+  setIgst={setIgst}
+  setTotalGstValue={setTotalGstValue}
+  setAvgGstPercent={setAvgGstPercent}
+  setAvgDiscountPercent={setAvgDiscountPercent}
+  setTotalDiscountValue={setTotalDiscountValue}
       />
 
       {shouldShowGenerateButton && (
@@ -244,7 +278,7 @@ const handleSubmit = async () => {
             cursor: 'pointer',
           }}
         >
-          save
+          Save
         </button>
       )}
     </div>

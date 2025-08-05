@@ -2,15 +2,21 @@
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import './App.css';
 
 export default function ProductItems({
   cartItems,
   setCartItems,
   selectedInvoice,
-  selectedOption1,
-  selectedOption2,
-  inputText,
-   invoiceNumber
+  invoiceNumber,
+  setIsIntraState,
+  setCgst,
+  setSgst,
+  setIgst,
+  setTotalGstValue,
+  setAvgGstPercent,
+  setAvgDiscountPercent,
+  setTotalDiscountValue
 }) {
   const navigate = useNavigate();
 
@@ -23,7 +29,7 @@ export default function ProductItems({
     
 
     useEffect(() => {
-        fetch('https://backend-kappa-rouge-15.vercel.app/items')
+        fetch('https://backend-git-main-santbhadurs-projects.vercel.app/items')
             .then(res => res.json())
             .then(data => setItems(data))
             .catch(err => console.error('Error fetching items:', err));
@@ -40,6 +46,57 @@ export default function ProductItems({
         );
         setFilteredItems(results);
     }, [searchTerm, items]);
+    useEffect(() => {
+  const customerState = selectedInvoice?.shippingAddress?.state?.toLowerCase() || '';
+  const intraState = customerState === 'gujarat';
+  setIsIntraState(intraState);
+
+  const totalGstRaw = cartItems.reduce((sum, item) => {
+    const unitPrice = parseFloat(item.unitPrice);
+    const priceWithTax = parseFloat(item.priceWithTax);
+    const gstAmount = (priceWithTax - unitPrice) * item.quantity;
+    return sum + gstAmount;
+  }, 0);
+
+  const avgGst = cartItems.length > 0
+    ? (
+        cartItems.reduce((sum, item) => {
+          const unitPrice = parseFloat(item.unitPrice);
+          const priceWithTax = parseFloat(item.priceWithTax);
+          return sum + ((priceWithTax - unitPrice) / unitPrice) * 100;
+        }, 0) / cartItems.length
+      )
+    : 0;
+
+  const cgstVal = intraState ? (totalGstRaw / 2).toFixed(2) : '';
+  const sgstVal = intraState ? (totalGstRaw / 2).toFixed(2) : '';
+  const igstVal = !intraState ? totalGstRaw.toFixed(2) : '';
+
+  const totalDiscountVal = cartItems.reduce((sum, item) => {
+    const priceWithTax = parseFloat(item.priceWithTax);
+    const quantity = item.quantity;
+    const discountPercent = parseFloat(item.discount) || 0;
+    const totalBeforeDiscount = priceWithTax * quantity;
+    const discountAmount = (totalBeforeDiscount * discountPercent) / 100;
+    return sum + discountAmount;
+  }, 0);
+
+  const avgDiscount = cartItems.length > 0
+    ? (
+        cartItems.reduce((sum, item) => sum + (parseFloat(item.discount) || 0), 0) / cartItems.length
+      )
+    : 0;
+
+  // Send calculated values to parent
+  setCgst(cgstVal);
+  setSgst(sgstVal);
+  setIgst(igstVal);
+  setTotalGstValue(totalGstRaw.toFixed(2));
+  setAvgGstPercent(avgGst.toFixed(2));
+  setAvgDiscountPercent(avgDiscount.toFixed(2));
+  setTotalDiscountValue(totalDiscountVal.toFixed(2));
+}, [cartItems, selectedInvoice]);
+
 
     const handleSelectItem = (item) => {
         setSelectedItem(item);
@@ -47,6 +104,14 @@ export default function ProductItems({
         setFilteredItems([]);
         setQty('');
     };
+
+    // Example of correct usage inside ProductItems.js
+const handleAddProduct = (product) => {
+  const updatedItems = [...cartItems, product];
+  setCartItems(updatedItems);
+};
+
+
 
     const handleAddToCart = () => {
         if (!selectedItem || !qty || isNaN(qty) || qty <= 0) {
@@ -79,6 +144,33 @@ export default function ProductItems({
         setQty('');
     };
 
+    const customerState = selectedInvoice?.shippingAddress?.state?.toLowerCase() || '';
+const isIntraState = customerState === 'gujarat';
+
+const totalGstValueRaw = cartItems.reduce((sum, item) => {
+  const unitPrice = parseFloat(item.unitPrice);
+  const priceWithTax = parseFloat(item.priceWithTax);
+  const gstAmount = (priceWithTax - unitPrice) * item.quantity;
+  return sum + gstAmount;
+}, 0);
+
+const avgGstPercentRaw = cartItems.length > 0
+  ? (
+      cartItems.reduce((sum, item) => {
+        const unitPrice = parseFloat(item.unitPrice);
+        const priceWithTax = parseFloat(item.priceWithTax);
+        return sum + ((priceWithTax - unitPrice) / unitPrice) * 100;
+      }, 0) / cartItems.length
+    )
+  : 0;
+
+
+
+const cgst = isIntraState ? (totalGstValueRaw / 2).toFixed(2) : null;
+const sgst = isIntraState ? (totalGstValueRaw / 2).toFixed(2) : null;
+const igst = !isIntraState ? totalGstValueRaw.toFixed(2) : null;
+
+
     const handleDiscountChange = (index, discountPercentValue) => {
         const updatedCart = [...cartItems];
         const item = updatedCart[index];
@@ -99,10 +191,46 @@ export default function ProductItems({
 
         setCartItems(updatedCart);
     };
+    const totalGstValue = cartItems.reduce((sum, item) => {
+  const unitPrice = parseFloat(item.unitPrice);
+  const priceWithTax = parseFloat(item.priceWithTax);
+  const gstAmount = (priceWithTax - unitPrice) * item.quantity;
+  return sum + gstAmount;
+}, 0).toFixed(2);
+
+const avgGstPercent = cartItems.length > 0
+  ? (
+      cartItems.reduce((sum, item) => {
+        const unitPrice = parseFloat(item.unitPrice);
+        const priceWithTax = parseFloat(item.priceWithTax);
+        return sum + ((priceWithTax - unitPrice) / unitPrice) * 100;
+      }, 0) / cartItems.length
+    ).toFixed(2)
+  : 0;
+
+const totalDiscountValue = cartItems.reduce((sum, item) => {
+  const unitPrice = parseFloat(item.unitPrice);
+  const priceWithTax = parseFloat(item.priceWithTax);
+  const quantity = item.quantity;
+  const totalBeforeDiscount = priceWithTax * quantity;
+  const discountPercent = parseFloat(item.discount) || 0;
+  const discountAmount = (totalBeforeDiscount * discountPercent) / 100;
+  return sum + discountAmount;
+}, 0).toFixed(2);
+
+const avgDiscountPercent = cartItems.length > 0
+  ? (
+      cartItems.reduce((sum, item) => sum + (parseFloat(item.discount) || 0), 0) / cartItems.length
+    ).toFixed(2)
+  : 0;
+
+
     const totalProducts = cartItems.length;
     const totalQuantity = cartItems.reduce((sum, item) => sum + item.quantity, 0);
     const grandTotal = cartItems.reduce((sum, item) => sum + parseFloat(item.total), 0).toFixed(2);
     
+    console.log('Received invoiceNumber prop:', invoiceNumber);
+
 
     return (
         <div>
@@ -123,7 +251,7 @@ export default function ProductItems({
 
             </div>
             <div style={{ marginBottom: '20px', fontWeight: 'bold' }}>
-  Invoice Number: {invoiceNumber || 'Loading...'}
+            Invoice Number: {invoiceNumber || 'Loading...'}
 </div>
 
             <div className='productionitem'>
@@ -228,18 +356,40 @@ export default function ProductItems({
 >
     <div style={{ width: '20%' }}>Total Products: {totalProducts}</div>
     <div style={{ width: '10%' }}>Total Qty: {totalQuantity}</div>
-    <div style={{ width: '15%' }}></div>
+    <div style={{ width: '15%' }}>dds</div>
     <div style={{ width: '15%' }}></div>
     <div style={{ width: '20%' }}></div>
-    <div style={{ width: '20%' }}>Grand Total: ₹{grandTotal}</div>
+    <div style={{ width: '20%' }}>Total</div>
 </div>
+<div className='container py-5'>
+    <div className='shipping'>
+  {parseFloat(totalGstValue) > 0 && (
+      isIntraState ? (
+        <div>
+          <p className='joint'>CGST:{(avgGstPercentRaw / 2).toFixed(2)}% (₹{parseFloat(cgst)})<br /></p> 
+         <p className='joint'>SGST: {(avgGstPercentRaw / 2).toFixed(2)}% (₹{parseFloat(sgst)})<br /> </p>
+        </div>
+      ) : (
+        <>
+          <p className='joint'>IGST: {parseFloat(avgGstPercent)}% (₹{parseFloat(igst)})<br /></p>
+        </>
+      )
+    )}
+    
+      <>
+       <p className='joint'> Discount: {parseFloat(avgDiscountPercent)}% (₹{parseFloat(totalDiscountValue)})<br /> </p>
+      </>
+    <p className='joint'>Grand Total: ₹{grandTotal}</p>
+        </div>
  
+
+ </div>
                 </>
             )}
            
-
-
             
         </div>
+
+        
     );
 }

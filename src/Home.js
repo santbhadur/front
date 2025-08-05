@@ -16,11 +16,6 @@ const Home = () => {
   const [sales, setSales] = useState([]);
 
 
-  // Form data
-  const [selectedOption1, setSelectedOption1] = useState('');
-  const [selectedOption2, setSelectedOption2] = useState('');
-  const [inputText, setInputText] = useState('');
-
   const navigate = useNavigate();
 
 
@@ -38,23 +33,23 @@ const Home = () => {
     return () => clearTimeout(delaySearch);
   }, [query]);
   useEffect(() => {
-  fetchSales();
-}, []);
+    fetchSales();
+  }, []);
 
-const fetchSales = async () => {
-  try {
-    const response = await fetch('https://backend-kappa-rouge-15.vercel.app/sales');
-    const data = await response.json();
-    setSales(data);
-  } catch (error) {
-    console.error('Failed to fetch sales data:', error);
-  }
-};
+  const fetchSales = async () => {
+    try {
+      const response = await fetch('https://backend-git-main-santbhadurs-projects.vercel.app/api/invoices/submit');
+      const data = await response.json();
+      setSales(data);
+    } catch (error) {
+      console.error('Failed to fetch sales data:', error);
+    }
+  };
 
 
   const searchInvoices = async (searchTerm) => {
     try {
-      const response = await fetch(`https://backend-kappa-rouge-15.vercel.app/invoices/search?customerName=${searchTerm}`);
+      const response = await fetch(`https://backend-git-main-santbhadurs-projects.vercel.app/invoices/search?customerName=${searchTerm}`);
       const data = await response.json();
 
       if (response.ok && data.length > 0) {
@@ -71,26 +66,26 @@ const fetchSales = async () => {
   };
 
   const handleDeleteSale = async (saleId) => {
-  const confirmDelete = window.confirm('Are you sure you want to delete this sale?');
-  if (!confirmDelete) return;
+    const confirmDelete = window.confirm('Are you sure you want to delete this sale?');
+    if (!confirmDelete) return;
 
-  try {
-    const response = await fetch(`https://backend-kappa-rouge-15.vercel.app/sales/${saleId}`, {
-      method: 'DELETE',
-    });
+    try {
+      const response = await fetch(`https://backend-git-main-santbhadurs-projects.vercel.app/api/invoices/submit/${saleId}`, {
+        method: 'DELETE',
+      });
 
-    if (response.ok) {
-      // Remove from UI
-      setSales(sales.filter((sale) => sale._id !== saleId));
-      alert('Sale deleted successfully');
-    } else {
-      alert('Failed to delete sale');
+      if (response.ok) {
+        // Remove from UI
+        setSales(sales.filter((sale) => sale._id !== saleId));
+        alert('Sale deleted successfully');
+      } else {
+        alert('Failed to delete sale');
+      }
+    } catch (error) {
+      console.error('Error deleting sale:', error);
+      alert('Something went wrong while deleting');
     }
-  } catch (error) {
-    console.error('Error deleting sale:', error);
-    alert('Something went wrong while deleting');
-  }
-};
+  };
 
 
   const handleSelectInvoice = (invoice) => {
@@ -98,14 +93,66 @@ const fetchSales = async () => {
     setInvoiceData([]); // Remove all results
   };
 
-  
+const styles = {
+  container: {
+    padding: '30px',
+    maxWidth: '900px',
+    margin: 'auto',
+    backgroundColor: '#fff',
+    borderRadius: '10px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+  },
+  heading: {
+    fontSize: '28px',
+    fontWeight: 'bold',
+    marginBottom: '20px',
+    borderBottom: '2px solid #eee',
+    paddingBottom: '10px',
+  },
+  infoBox: {
+    marginBottom: '30px',
+    lineHeight: '1.8',
+  },
+  detail: {
+    fontSize: '16px',
+    marginBottom: '8px',
+  },
+  subheading: {
+    fontSize: '22px',
+    margin: '20px 0 10px',
+    color: '#333',
+  },
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    fontSize: '15px',
+  },
+  tableHead: {
+    backgroundColor: '#f2f2f2',
+  },
+  th: {
+    padding: '10px',
+    border: '1px solid #ddd',
+    textAlign: 'left',
+  },
+  tr: {
+    borderBottom: '1px solid #eee',
+  },
+  td: {
+    padding: '10px',
+    border: '1px solid #ddd',
+  },
+};
+
+
 
   return (
+    
 
     <div style={{ margin: '20px' }}>
       <Layout />
       <div className='Total'>
-        hiis
+        Total Sale
       </div>
       <div className='Homes'>
         <div className='Homesmain'>
@@ -121,9 +168,18 @@ const fetchSales = async () => {
               marginRight: '10px',
               width: '300px',
             }}
-          /><Link 
+          /><Link
             to='/SearchInvoice'
             className='create'
+            style={{
+      backgroundColor: '#007bff',
+      color: 'white',
+      border: 'none',
+      padding: '5px 10px',
+      cursor: 'pointer',
+      borderRadius: '4px',
+      textDecoration: 'none',
+    }}
           >
             Create Invoice
           </Link>
@@ -140,11 +196,11 @@ const fetchSales = async () => {
                     border: '1px solid #ccc',
                     padding: '15px',
                     marginBottom: '10px',
-                    marginLeft:'-21%',
-                    marginTop:'3%',
+                    marginLeft: '-21%',
+                    marginTop: '3%',
                     cursor: 'pointer',
                     backgroundColor: '#f9f9f9',
-                    
+
                   }}
 
                 >
@@ -153,52 +209,76 @@ const fetchSales = async () => {
               ))}
               {notFound && <p style={{ color: 'red' }}>No invoice found for "{query}"</p>}
             </div>
-            <div className='Amountline'>
-          <p className='Amountlin1'>Amount</p>
-          <p className='Amountlin1'>Status</p>
-          <p className='Amountlin1'>Bill</p>
-          <p className='Amountlin1'>Customer</p>
-          <p className='Amountlin1'>Date</p>
-          <p className='Amountlin1'>Delete</p>
-        </div>
-        <div className="sales-list-scrollable">
+            <div className="sales-list-scrollable">
+  <table style={styles.table}>
+    <thead style={styles.tableHead}>
+      <tr>
+        <th style={styles.th}>Amount</th>
+        <th style={styles.th}>Status</th>
+        <th style={styles.th}>Invoice </th>
+        <th style={styles.th}>Customer</th>
+        <th style={styles.th}>Date</th>
+        <th style={styles.th}>View</th>
+        <th style={styles.th}>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {[...sales].reverse().map((sale) => (
+        <tr key={sale._id} style={styles.tr}>
+          <td style={styles.td}>₹{sale.grandTotal}</td>
+          <td style={styles.td}>Paid</td>
+          <td
+            style={{ ...styles.td, cursor: 'pointer', color: '#007bff' }}
+            onClick={() => navigate(`/sale/${sale._id}`)}
+          >
+            {sale.invoiceNumber}
+          </td>
+          <td style={styles.td}>{sale.customerName}</td>
+          <td style={styles.td}>{new Date(sale.invoiceDate).toLocaleDateString()}</td>
+          <td style={styles.td}>
+  <button
+    onClick={() => navigate(`/sale/${sale._id}`)}
+    style={{
+      backgroundColor: '#007bff',
+      color: 'white',
+      border: 'none',
+      padding: '5px 10px',
+      cursor: 'pointer',
+      borderRadius: '4px',
+    }}
+  >
+    View
+  </button>
+</td>
 
-            {[...sales].reverse().map((sale) => (
-  <div className="Amountline1" key={sale._id}
-   style={{ display: 'flex', gap: '1px', padding: '10px 0', borderBottom: '1px solid #ddd' }}  >
-    <div className="Amountline1" key={sale._id} onClick={() => navigate(`/sale/${sale._id}`)}
-   style={{ display: 'flex', gap: '1px', padding: '10px 0', borderBottom: '1px solid #ddd' }}>
-    <p className="Amountlin1">₹{sale.grandTotal}</p>
-    <p className="Amountlin1">Paid</p>
-    <p className="Amountlin1">{sale.invoiceNumber}</p>
-    <p className="Amountlin1">{sale.customerName}</p>
-    <p className="Amountlin1">{new Date(sale.invoiceDate).toLocaleDateString()}</p>
-    </div>
-     <p className="Amountlin1">
-      
-        <button
-          onClick={() => handleDeleteSale(sale._id)}
-          style={{
-            backgroundColor: 'red',
-            color: 'white',
-            border: 'none',
-            padding: '5px 10px',
-            cursor: 'pointer',
-            borderRadius: '4px',
-          }}
-        >
-          Delete
-        </button>
-      </p>
-  </div>
-))}
+          <td style={styles.td}>
+            <button
+              onClick={() => handleDeleteSale(sale._id)}
+              style={{
+                backgroundColor: 'red',
+                color: 'white',
+                border: 'none',
+                padding: '5px 10px',
+                cursor: 'pointer',
+                borderRadius: '4px',
+              }}
+            >
+              Delete
+            </button>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
 </div>
+
           </div>
         </div>
-        
+
       </div>
     </div>
   );
+  
 };
 
 export default Home;
